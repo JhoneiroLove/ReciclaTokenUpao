@@ -1,17 +1,65 @@
 # ReciclaUPAO - ICO & Token ERC-20
 
-Sistema de incentivos de reciclaje universitario basado en blockchain. Token **REC (ReciclaToken)** implementado como ERC-20 en Polygon.
+Sistema de incentivos de reciclaje universitario basado en blockchain. Token REC (ReciclaToken) implementado como ERC-20 en Polygon.
 
-## Características
+## Descripción del Proyecto
 
-- Token ERC-20 con 10,000,000 REC de supply máximo
-- Sistema de whitelist con vinculación a DNI
-- Acuñación controlada por actividades de reciclaje verificadas
-- ICO con soft cap (50K USD) y hard cap (500K USD)
-- Descuentos por early adopters (15%, 10%, 5% por semana)
-- Sistema de roles con AccessControl de OpenZeppelin
+ReciclaUPAO es un sistema de incentivos de reciclaje para la comunidad universitaria que utiliza tecnología blockchain para garantizar transparencia y trazabilidad en la gestión de recompensas. El sistema permite a los estudiantes ganar tokens REC por actividades de reciclaje verificadas y canjearlos por recompensas en el ecosistema universitario.
+
+## Características Principales
+
+- Token ERC-20 con supply máximo de 10,000,000 REC
+- Sistema de whitelist con vinculación a DNI para identidad verificada
+- Acuñación controlada por actividades de reciclaje verificadas por backend
+- ICO con soft cap (50,000 MATIC) y hard cap (500,000 MATIC)
+- Descuentos progresivos por early adopters: 15%, 10%, 5% por semana
+- Sistema de roles basado en AccessControl de OpenZeppelin
 - Quema de tokens para canje de recompensas
 - Sistema de pausa de emergencia
+- Tracking completo de tokens ganados y gastados por usuario
+
+## Arquitectura del Sistema
+
+### Smart Contracts
+
+**ReciclaToken.sol**
+
+- Hereda de ERC20, AccessControl, Pausable
+- Roles: MINTER_ROLE, BURNER_ROLE, PAUSER_ROLE, WHITELIST_MANAGER_ROLE
+- Funciones principales: mintForActivity, burnForRedemption, addToWhitelist
+- Eventos: TokensMinted, TokensBurned, UserWhitelisted
+
+**ReciclaICO.sol**
+
+- Hereda de Ownable, ReentrancyGuard, Pausable
+- Gestión de soft cap y hard cap
+- Sistema de descuentos progresivos por semana
+- Funciones principales: startICO, buyTokens, finalizeICO, claimRefund
+
+### Estructura de Directorios
+
+```
+recicla-upao-ico/
+├── contracts/
+│   ├── ReciclaToken.sol
+│   └── ReciclaICO.sol
+├── scripts/
+│   ├── _config.ts
+│   ├── deploy.ts
+│   ├── setup-initial.ts
+│   ├── token-info.ts
+│   ├── balances.ts
+│   ├── buy-tokens.ts
+│   ├── recycle-activity.ts
+│   ├── redeem-reward.ts
+│   ├── events-live.ts
+│   ├── events-history.ts
+│   └── finalize-ico.ts
+├── test/
+│   └── ReciclaSystem.test.ts
+├── deployments/
+└── ignition/modules/
+```
 
 ## Requisitos Previos
 
@@ -31,7 +79,7 @@ cd recicla-upao-ico
 ### 2. Instalar dependencias
 
 ```bash
-npm install
+npm install --legacy-peer-deps
 ```
 
 ### 3. Compilar contratos
@@ -40,253 +88,343 @@ npm install
 npm run compile
 ```
 
-## Desarrollo Local
+El comando generará los artifacts en la carpeta `/artifacts` y los tipos en `/typechain-types`.
 
-### Iniciar red local de Hardhat
+## Guía de Uso - Desarrollo Local
 
-En una terminal, ejecuta y deja corriendo:
+### Paso 1: Iniciar red local de Hardhat
+
+Abre una terminal y ejecuta:
 
 ```bash
 npm run node
 ```
 
-Esto iniciará una blockchain local en `http://127.0.0.1:8545` con 20 cuentas de prueba.
+Este comando iniciará una blockchain local en `http://127.0.0.1:8545` con 20 cuentas de prueba, cada una con 10,000 ETH.
 
-### Desplegar contratos localmente
+**Importante:** Deja esta terminal corriendo durante todo el proceso de desarrollo.
 
-En otra terminal:
+### Paso 2: Desplegar contratos
+
+Abre una segunda terminal y ejecuta:
 
 ```bash
 npm run deploy:local
 ```
 
-### Configurar el sistema
+Este comando desplegará los contratos ReciclaToken y ReciclaICO en la red local. Las direcciones de los contratos se guardarán automáticamente en `deployments/localhost.json`.
+
+Salida esperada:
+
+- Dirección del ReciclaToken
+- Dirección del ReciclaICO
+- Confirmación de deployment exitoso
+
+### Paso 3: Configurar el sistema
+
+En la misma segunda terminal, ejecuta:
 
 ```bash
 npm run setup
 ```
 
-Este script:
+Este script realizará las siguientes acciones:
 
-- Acuña 3,000,000 REC para la ICO
-- Transfiere tokens al contrato ICO
-- Agrega usuarios demo a la whitelist
-- Inicia la ICO (30 días)
+1. Agregar el administrador a la whitelist
+2. Acuñar 3,000,000 REC para la ICO
+3. Transferir los tokens al contrato ICO
+4. Agregar tres usuarios demo a la whitelist
+5. Iniciar la ICO con duración de 30 días
+6. Verificar la configuración completa
 
-## Scripts Disponibles
+### Paso 4: Consultar información del sistema
 
-### Consultas
+Para ver el estado completo del sistema, ejecuta:
 
 ```bash
-# Ver información general del token e ICO
 npm run info
+```
 
-# Ver balances de todos los actores
+Este comando mostrará:
+
+- Información de la red
+- Direcciones de los contratos
+- Datos del token REC (nombre, símbolo, supply)
+- Estado de la ICO (activa/inactiva, precio, descuentos)
+- Cronología de la ICO
+- Progreso actual (fondos recaudados, tokens vendidos)
+
+### Paso 5: Ver balances de usuarios
+
+```bash
 npm run balances
+```
 
-# Ver eventos históricos
-npm run events:history
+Muestra los balances de:
 
-# Monitorear eventos en tiempo real
+- Administrador
+- Backend
+- Usuarios demo (1-4)
+- Contrato ICO
+- Resumen del supply total
+
+### Paso 6: Simular compra de tokens
+
+Para simular que un usuario compra tokens en la ICO:
+
+```bash
+npm run buy-tokens
+```
+
+Por defecto, el Usuario #1 comprará con 10 MATIC. Para especificar una cantidad diferente:
+
+```bash
+npm run buy-tokens 50
+```
+
+El script calculará automáticamente el descuento aplicable según la semana de la ICO.
+
+### Paso 7: Simular actividad de reciclaje
+
+Para simular que un usuario registra una actividad de reciclaje:
+
+```bash
+npm run recycle
+```
+
+Por defecto, registra 50 REC para el Usuario #1. Para cambiar la cantidad y el usuario:
+
+```bash
+npm run recycle 100 2
+```
+
+Esto registrará 100 REC para el Usuario #2.
+
+### Paso 8: Simular canje de recompensa
+
+Para simular que un usuario canjea tokens por una recompensa:
+
+```bash
+npm run redeem
+```
+
+Por defecto, canjea 25 REC del Usuario #1. Para especificar cantidad y usuario:
+
+```bash
+npm run redeem 50 1
+```
+
+### Paso 9: Monitorear eventos en vivo (Opcional)
+
+Abre una tercera terminal y ejecuta:
+
+```bash
 npm run events:live
 ```
 
-### Interacciones
+Este script monitoreará en tiempo real todos los eventos que ocurran en los contratos:
+
+- TokensMinted
+- TokensBurned
+- Transfer
+- UserWhitelisted
+- TokensPurchased
+- ICOStarted
+- ICOFinalized
+
+Presiona Ctrl+C para detener el monitor.
+
+### Paso 10: Consultar eventos históricos (Opcional)
+
+Para ver todos los eventos desde el inicio:
 
 ```bash
-# Comprar tokens en la ICO (default: 10 MATIC)
-npm run buy-tokens
-npm run buy-tokens 50  # Comprar con 50 MATIC
+npm run events:history
+```
 
-# Registrar actividad de reciclaje (default: 50 REC, usuario 1)
-npm run recycle
-npm run recycle 100 2  # 100 REC para usuario 2
+Para especificar un rango de bloques:
 
-# Canjear recompensa (default: 25 REC, usuario 1)
-npm run redeem
-npm run redeem 50 1  # Canjear 50 REC del usuario 1
+```bash
+npm run events:history 0 100
+```
 
-# Finalizar ICO
+### Paso 11: Finalizar ICO (Cuando termine el período)
+
+Cuando la ICO llegue a su fecha de fin o alcance el hard cap:
+
+```bash
 npm run finalize-ico
 ```
 
-### Desarrollo
+Este script:
+
+- Finalizará la ICO
+- Retirará los fondos si se alcanzó el soft cap
+- Retirará los tokens no vendidos
+- Mostrará el resumen final
+
+## Testing
+
+### Ejecutar tests unitarios
 
 ```bash
-# Limpiar artifacts
-npm run clean
-
-# Compilar contratos
-npm run compile
-
-# Ejecutar tests
-npm run test
+npm test
 ```
 
-## Arquitectura
+El test unitario incluido verifica el flujo completo de un usuario:
 
-```
-recicla-upao-ico/
-├── contracts/
-│   ├── ReciclaToken.sol      # Token ERC-20 principal
-│   └── ReciclaICO.sol         # Contrato de la ICO
-├── scripts/
-│   ├── deploy.ts              # Deployment de contratos
-│   ├── setup-initial.ts       # Configuración inicial
-│   ├── token-info.ts          # Consultar información
-│   ├── balances.ts            # Ver balances
-│   ├── buy-tokens.ts          # Comprar en ICO
-│   ├── recycle-activity.ts    # Registrar reciclaje
-│   ├── redeem-reward.ts       # Canjear recompensa
-│   ├── events-live.ts         # Monitor de eventos
-│   ├── events-history.ts      # Eventos históricos
-│   └── finalize-ico.ts        # Finalizar ICO
-├── ignition/
-│   └── modules/
-│       └── ReciclaModule.ts   # Módulo de Hardhat Ignition
-└── test/                      # Tests unitarios
-```
-
-## Roles del Sistema
-
-### ReciclaToken
-
-- **DEFAULT_ADMIN_ROLE**: Administrador principal (otorga/revoca roles)
-- **MINTER_ROLE**: Puede acuñar tokens (backend)
-- **BURNER_ROLE**: Puede quemar tokens (backend)
-- **PAUSER_ROLE**: Puede pausar el contrato (admin)
-- **WHITELIST_MANAGER_ROLE**: Gestiona la whitelist (backend)
-
-### ReciclaICO
-
-- **Owner**: Administrador de la ICO (iniciar, finalizar, retirar fondos)
+1. Compra de tokens en la ICO con descuento
+2. Registro de actividad de reciclaje
+3. Canje de recompensa
+4. Verificación de balances y tracking
 
 ## Tokenomics
+
+### Distribución de Tokens
 
 | Asignación | Tokens | Porcentaje | Propósito |
 |------------|--------|------------|-----------|
 | Recompensas estudiantes | 4,000,000 REC | 40% | Acuñación dinámica por actividades |
 | ICO Pública | 3,000,000 REC | 30% | Venta pública |
-| Equipo | 1,500,000 REC | 15% | Desarrollo (12 meses vesting) |
+| Equipo | 1,500,000 REC | 15% | Desarrollo |
 | Reserva estratégica | 1,000,000 REC | 10% | Marketing y partnerships |
 | Liquidez DEX | 500,000 REC | 5% | Pools de liquidez |
 
+### Parámetros de la ICO
+
+- Precio inicial: 0.1 MATIC por REC
+- Soft Cap: 50,000 MATIC
+- Hard Cap: 500,000 MATIC
+- Compra mínima: 100 REC
+- Compra máxima: 100,000 REC
+- Duración: 30 días
+- Descuentos: Semana 1 (15%), Semana 2 (10%), Semana 3 (5%)
+
+## Sistema de Roles
+
+### ReciclaToken
+
+- **DEFAULT_ADMIN_ROLE**: Administrador principal, puede otorgar y revocar roles
+- **MINTER_ROLE**: Puede acuñar tokens (asignado al backend)
+- **BURNER_ROLE**: Puede quemar tokens (asignado al backend)
+- **PAUSER_ROLE**: Puede pausar el contrato en emergencias
+- **WHITELIST_MANAGER_ROLE**: Gestiona la whitelist de usuarios
+
+### ReciclaICO
+
+- **Owner**: Administrador de la ICO, puede iniciar, finalizar y retirar fondos
+
 ## Despliegue en Testnet (Mumbai)
 
-### 1. Configurar variables de entorno
+### Configuración de Variables de Entorno
 
-Copia `.env.example` a `.env` y configura:
+1. Copia el archivo de ejemplo:
 
 ```bash
 cp .env.example .env
 ```
 
-Edita `.env`:
+2. Edita el archivo `.env` con tu información:
 
-```bash
+```
 MUMBAI_RPC_URL=https://polygon-mumbai.g.alchemy.com/v2/TU_API_KEY
 PRIVATE_KEY=0xtu_clave_privada_de_metamask
 ```
 
-### 2. Obtener MATIC de testnet
+### Obtener MATIC de Testnet
 
-Visita: <https://faucet.polygon.technology/>
+Visita el faucet de Polygon: <https://faucet.polygon.technology/>
 
-Pega tu dirección de wallet y solicita MATIC gratis.
+Ingresa tu dirección de wallet y solicita MATIC gratis.
 
-### 3. Desplegar en Mumbai
+### Desplegar en Mumbai
 
 ```bash
 npm run deploy:mumbai
 ```
 
-## Smart Contracts
+Nota: Necesitarás actualizar el script de deployment y la configuración de Hardhat para soportar Mumbai.
 
-### ReciclaToken (ERC-20)
+## Scripts Disponibles
 
-```solidity
-// Principales funciones
-function mintForActivity(address to, uint256 amount, string reason)
-function burnForRedemption(address from, uint256 amount, string reason)
-function addToWhitelist(address user, string dniHash)
-function pause() / unpause()
-```
+### Desarrollo
 
-### ReciclaICO
+- `npm run compile` - Compila los contratos Solidity
+- `npm run clean` - Limpia artifacts y cache
+- `npm test` - Ejecuta los tests unitarios
+- `npm run node` - Inicia red local de Hardhat
 
-```solidity
-// Principales funciones
-function startICO(uint256 duration)
-function buyTokens() payable
-function finalizeICO()
-function claimRefund()
-function withdrawFunds()
-```
+### Deployment y Configuración
 
-## Tests
+- `npm run deploy:local` - Despliega contratos en red local
+- `npm run setup` - Configura el sistema después del deployment
 
-```bash
-npm run test
-```
+### Consultas
 
-Los tests verifican:
+- `npm run info` - Muestra información completa del sistema
+- `npm run balances` - Muestra balances de todos los actores
+- `npm run events:history` - Muestra eventos históricos
+- `npm run events:live` - Monitorea eventos en tiempo real
 
-- Deployment correcto de contratos
-- Sistema de roles
-- Acuñación y quema de tokens
-- Whitelist
-- Compra de tokens en ICO
-- Canje de recompensas
+### Interacciones
 
-## Licencia
+- `npm run buy-tokens [cantidad]` - Simula compra de tokens
+- `npm run recycle [cantidad] [usuario]` - Simula actividad de reciclaje
+- `npm run redeem [cantidad] [usuario]` - Simula canje de recompensa
+- `npm run finalize-ico` - Finaliza la ICO
 
-MIT License - Ver [LICENSE](LICENSE) para más detalles.
+## Seguridad
+
+### Consideraciones Importantes
+
+- Nunca compartas tu clave privada
+- Nunca subas el archivo `.env` a repositorios públicos
+- Usa wallets separadas para testing y producción
+- Las cuentas de Hardhat son públicas, nunca uses sus claves en mainnet
+- Realiza auditorías de seguridad antes de desplegar en producción
+
+### Buenas Prácticas
+
+- Mantén actualizadas las dependencias de OpenZeppelin
+- Ejecuta tests exhaustivos antes de cada deployment
+- Utiliza un multisig wallet para funciones administrativas en producción
+- Implementa rate limiting en el backend para prevenir abuso
+- Mantén logs detallados de todas las transacciones
+
+## Resolución de Problemas
+
+### Error: Cannot find module
+
+Solución: Ejecuta `npm install --legacy-peer-deps`
+
+### Error: Contratos no encontrados
+
+Solución: Asegúrate de haber ejecutado `npm run compile` primero
+
+### Error: Network not found
+
+Solución: Verifica que el nodo local esté corriendo con `npm run node`
+
+### Error: Insufficient funds
+
+Solución: En testnet, obtén más MATIC del faucet. En local, reinicia el nodo.
 
 ## Contribuciones
 
 Las contribuciones son bienvenidas. Por favor:
 
 1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/amazing-feature`)
-3. Commit tus cambios (`git commit -m 'Add amazing feature'`)
-4. Push a la rama (`git push origin feature/amazing-feature`)
+2. Crea una rama para tu feature
+3. Commit tus cambios
+4. Push a la rama
 5. Abre un Pull Request
 
 ## Contacto
 
 ReciclaUPAO Team - Universidad Privada Antenor Orrego
 
----
+Proyecto académico desarrollado como parte de la tesis de Ingeniería de Sistemas.
 
-**Disclaimer**: Este proyecto es académico y de investigación. No constituye asesoría financiera ni legal.
+## Disclaimer
 
----
-
-## 📁 Resumen de Estructura Final
-```
-
-recicla-upao-ico/
-├── contracts/
-│   ├── ReciclaToken.sol ✅
-│   └── ReciclaICO.sol ✅
-├── scripts/
-│   ├── _config.ts ✅
-│   ├── deploy.ts ✅
-│   ├── setup-initial.ts ✅
-│   ├── token-info.ts ✅
-│   ├── balances.ts ✅
-│   ├── buy-tokens.ts ✅
-│   ├── recycle-activity.ts ✅
-│   ├── redeem-reward.ts ✅
-│   ├── events-live.ts ✅
-│   ├── events-history.ts ✅
-│   └── finalize-ico.ts ✅
-├── ignition/modules/
-│   └── ReciclaModule.ts ✅
-├── .env.example ✅
-├── .gitignore ✅
-├── hardhat.config.ts ✅
-├── package.json ✅
-├── tsconfig.json ✅
-├── README.md ✅
-└── LICENSE ✅
+Este proyecto es académico y de investigación. No constituye asesoría financiera ni legal. El uso de este código en producción requiere auditorías de seguridad profesionales.

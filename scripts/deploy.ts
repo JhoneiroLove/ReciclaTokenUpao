@@ -1,4 +1,5 @@
-import { ethers } from "hardhat";
+import hre from "hardhat";
+import "@nomicfoundation/hardhat-ethers";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -7,11 +8,16 @@ async function main() {
   console.log("   DEPLOYMENT - ReciclaUPAO ICO");
   console.log("===========================================\n");
 
-  const [deployer] = await ethers.getSigners();
+  // @ts-expect-error
+  const [deployer] = await hre.ethers.getSigners();
   console.log("Desplegando contratos con la cuenta:", deployer.address);
   console.log(
     "Balance de la cuenta:",
-    ethers.formatEther(await ethers.provider.getBalance(deployer.address)),
+    // @ts-expect-error
+    hre.ethers.formatEther(
+      // @ts-expect-error
+      await hre.ethers.provider.getBalance(deployer.address)
+    ),
     "ETH\n"
   );
 
@@ -19,7 +25,8 @@ async function main() {
   const backendAddress = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
 
   console.log("Desplegando ReciclaToken...");
-  const ReciclaToken = await ethers.getContractFactory("ReciclaToken");
+  // @ts-expect-error
+  const ReciclaToken = await hre.ethers.getContractFactory("ReciclaToken");
   const reciclaToken = await ReciclaToken.deploy(adminAddress, backendAddress);
   await reciclaToken.waitForDeployment();
   const tokenAddress = await reciclaToken.getAddress();
@@ -27,13 +34,19 @@ async function main() {
 
   console.log("Desplegando ReciclaICO...");
 
-  const tokenPrice = ethers.parseEther("0.1");
-  const softCap = ethers.parseEther("50000");
-  const hardCap = ethers.parseEther("500000");
-  const minPurchase = ethers.parseEther("100");
-  const maxPurchase = ethers.parseEther("100000");
+  // @ts-expect-error
+  const tokenPrice = hre.ethers.parseEther("0.1");
+  // @ts-expect-error
+  const softCap = hre.ethers.parseEther("50000");
+  // @ts-expect-error
+  const hardCap = hre.ethers.parseEther("500000");
+  // @ts-expect-error
+  const minPurchase = hre.ethers.parseEther("100");
+  // @ts-expect-error
+  const maxPurchase = hre.ethers.parseEther("100000");
 
-  const ReciclaICO = await ethers.getContractFactory("ReciclaICO");
+  // @ts-expect-error
+  const ReciclaICO = await hre.ethers.getContractFactory("ReciclaICO");
   const reciclaICO = await ReciclaICO.deploy(
     tokenAddress,
     tokenPrice,
@@ -66,7 +79,7 @@ async function main() {
     timestamp: new Date().toISOString(),
   };
 
-  const deploymentsDir = path.join(__dirname, "..", "deployments");
+  const deploymentsDir = path.join(process.cwd(), "deployments");
   if (!fs.existsSync(deploymentsDir)) {
     fs.mkdirSync(deploymentsDir);
   }

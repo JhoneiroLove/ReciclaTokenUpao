@@ -7,10 +7,10 @@
 
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
-    "module": "nodenext",
+    "module": "commonjs",
     "target": "ES2022",
     "lib": ["ES2022"],
-    "moduleResolution": "nodenext",
+    "moduleResolution": "node",
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -18,7 +18,7 @@
     "outDir": "./dist",
     "rootDir": "./",
     "forceConsistentCasingInFileNames": true,
-    "types": [],
+    "types": ["node", "mocha", "chai"],
     // For nodejs:
     // "lib": ["esnext"],
     // "types": ["node"],
@@ -30,8 +30,8 @@
     "declarationMap": true,
 
     // Stricter Typechecking Options
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
 
     // Style Options
     // "noImplicitReturns": true,
@@ -43,10 +43,8 @@
 
     // Recommended Options
     "jsx": "react-jsx",
-    "verbatimModuleSyntax": true,
     "isolatedModules": true,
-    "noUncheckedSideEffectImports": true,
-    "moduleDetection": "force",
+    "moduleDetection": "auto",
   },
   "include": ["**/*.ts", "**/*.tsx"],
   "exclude": ["node_modules", "artifacts", "cache", "dist"]

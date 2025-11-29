@@ -1,6 +1,5 @@
 # Dependencias
 node_modules/
-package-lock.json
 
 # Artifacts de Hardhat
 artifacts/
@@ -48,3 +47,5 @@ coverage/
 # Archivos temporales
 tmp/
 temp/
+
+types/ethers-contracts

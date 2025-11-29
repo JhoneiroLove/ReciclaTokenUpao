@@ -1,4 +1,4 @@
-import { ethers } from "ethers";
+﻿import { ethers } from "ethers";
 import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
@@ -24,17 +24,15 @@ export function getDeployedAddresses(): { token: string; ico: string } {
     const deploymentPath = path.join(
       __dirname,
       "..",
-      "ignition",
       "deployments",
-      `chain-${CHAIN_ID}`,
-      "deployed_addresses.json"
+      "localhost.json"
     );
 
     const data = JSON.parse(fs.readFileSync(deploymentPath, "utf8"));
 
     return {
-      token: data["ReciclaModule#ReciclaToken"],
-      ico: data["ReciclaModule#ReciclaICO"],
+      token: data.ReciclaToken,
+      ico: data.ReciclaICO,
     };
   } catch (error) {
     throw new Error(
@@ -42,7 +40,6 @@ export function getDeployedAddresses(): { token: string; ico: string } {
     );
   }
 }
-
 /**
  * Lee el ABI de un contrato compilado
  */

@@ -1,0 +1,50 @@
+# Dependencias
+node_modules/
+package-lock.json
+
+# Artifacts de Hardhat
+artifacts/
+cache/
+typechain-types/
+
+# Variables de entorno (NUNCA subir claves privadas)
+.env
+.env.local
+.env.*.local
+
+# Deployments
+deployments/
+ignition/deployments/
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Editor
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Compilados de TypeScript
+dist/
+build/
+*.tsbuildinfo
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Archivos temporales
+tmp/
+temp/

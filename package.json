@@ -9,6 +9,8 @@
     "test": "hardhat test",
     "node": "hardhat node",
     "deploy:local": "hardhat run scripts/deploy.ts --network localhost",
+    "deploy:amoy": "hardhat run scripts/deploy-testnet.ts --network amoy",
+    "deploy:polygon": "hardhat run scripts/deploy-testnet.ts --network polygon",
     "setup": "tsx scripts/setup-initial.ts",
     "info": "tsx scripts/token-info.ts",
     "balances": "tsx scripts/balances.ts",
@@ -58,6 +60,7 @@
     "typescript": "~5.8.0"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^5.4.0"
+    "@openzeppelin/contracts": "^5.4.0",
+    "dotenv": "^17.2.3"
   }
 }

@@ -9,7 +9,7 @@ typechain-types/
 # Variables de entorno (NUNCA subir claves privadas)
 .env
 .env.local
-.env.*.local
+.env.production
 
 # Deployments
 deployments/

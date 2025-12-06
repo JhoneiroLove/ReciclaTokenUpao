@@ -19,7 +19,7 @@ export const provider = new ethers.JsonRpcProvider(DEFAULT_RPC);
 /**
  * Lee las direcciones de los contratos desplegados
  */
-export function getDeployedAddresses(): { token: string; ico: string } {
+export function getDeployedAddresses(): { token: string } {
   try {
     const deploymentPath = path.join(
       __dirname,
@@ -32,7 +32,6 @@ export function getDeployedAddresses(): { token: string; ico: string } {
 
     return {
       token: data.ReciclaToken,
-      ico: data.ReciclaICO,
     };
   } catch (error) {
     throw new Error(
@@ -64,7 +63,6 @@ export function getContracts(signer?: ethers.Signer) {
   const addresses = getDeployedAddresses();
 
   const tokenABI = getABI("ReciclaToken");
-  const icoABI = getABI("ReciclaICO");
 
   const token = new ethers.Contract(
     addresses.token,
@@ -72,9 +70,7 @@ export function getContracts(signer?: ethers.Signer) {
     signer || provider
   );
 
-  const ico = new ethers.Contract(addresses.ico, icoABI, signer || provider);
-
-  return { token, ico, addresses };
+  return { token, addresses };
 }
 
 /**

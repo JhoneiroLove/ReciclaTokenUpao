@@ -5,7 +5,7 @@ import * as path from "path";
 
 async function main() {
   console.log("\n===========================================");
-  console.log("   DEPLOYMENT - ReciclaUPAO ICO");
+  console.log("   DEPLOYMENT - ReciclaUPAO Token System");
   console.log("===========================================\n");
 
   // @ts-expect-error
@@ -32,39 +32,11 @@ async function main() {
   const tokenAddress = await reciclaToken.getAddress();
   console.log("ReciclaToken desplegado en:", tokenAddress, "\n");
 
-  console.log("Desplegando ReciclaICO...");
-
-  // @ts-expect-error
-  const tokenPrice = hre.ethers.parseEther("0.1");
-  // @ts-expect-error
-  const softCap = hre.ethers.parseEther("50000");
-  // @ts-expect-error
-  const hardCap = hre.ethers.parseEther("500000");
-  // @ts-expect-error
-  const minPurchase = hre.ethers.parseEther("100");
-  // @ts-expect-error
-  const maxPurchase = hre.ethers.parseEther("100000");
-
-  // @ts-expect-error
-  const ReciclaICO = await hre.ethers.getContractFactory("ReciclaICO");
-  const reciclaICO = await ReciclaICO.deploy(
-    tokenAddress,
-    tokenPrice,
-    softCap,
-    hardCap,
-    minPurchase,
-    maxPurchase
-  );
-  await reciclaICO.waitForDeployment();
-  const icoAddress = await reciclaICO.getAddress();
-  console.log("ReciclaICO desplegado en:", icoAddress, "\n");
-
   console.log("===========================================");
   console.log("   DEPLOYMENT COMPLETADO");
   console.log("===========================================\n");
-  console.log("Direcciones desplegadas:");
-  console.log("   ReciclaToken:", tokenAddress);
-  console.log("   ReciclaICO:  ", icoAddress, "\n");
+  console.log("Dirección desplegada:");
+  console.log("   ReciclaToken:", tokenAddress, "\n");
 
   console.log("Próximos pasos:");
   console.log("   1. Ejecuta: npm run setup");
@@ -74,7 +46,6 @@ async function main() {
   const deploymentInfo = {
     network: "localhost",
     ReciclaToken: tokenAddress,
-    ReciclaICO: icoAddress,
     deployer: deployer.address,
     timestamp: new Date().toISOString(),
   };

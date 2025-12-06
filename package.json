@@ -1,7 +1,7 @@
 {
-  "name": "recicla-upao-ico",
+  "name": "recicla-upao-token",
   "version": "1.0.0",
-  "description": "ICO para sistema de reciclaje universitario ReciclaUPAO - Token REC (ERC-20) en Polygon",
+  "description": "Sistema de incentivos tokenizado para reciclaje universitario ReciclaUPAO - Token REC (ERC-20) en Polygon",
   "main": "index.js",
   "type": "commonjs",
   "scripts": {
@@ -14,23 +14,23 @@
     "setup": "tsx scripts/setup-initial.ts",
     "info": "tsx scripts/token-info.ts",
     "balances": "tsx scripts/balances.ts",
-    "buy-tokens": "tsx scripts/buy-tokens.ts",
     "recycle": "tsx scripts/recycle-activity.ts",
     "redeem": "tsx scripts/redeem-reward.ts",
     "events:live": "tsx scripts/events-live.ts",
     "events:history": "tsx scripts/events-history.ts",
-    "finalize-ico": "tsx scripts/finalize-ico.ts",
     "clean": "hardhat clean"
   },
   "keywords": [
     "blockchain",
-    "ico",
+    "token",
     "reciclaje",
     "erc20",
     "polygon",
     "hardhat",
     "solidity",
-    "typescript"
+    "typescript",
+    "incentivos",
+    "recompensas"
   ],
   "author": "ReciclaUPAO Team",
   "license": "MIT",

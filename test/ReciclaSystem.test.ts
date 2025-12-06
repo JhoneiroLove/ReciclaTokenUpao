@@ -1,22 +1,14 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { ReciclaToken, ReciclaICO } from "../typechain-types";
+import { ReciclaToken } from "../typechain-types";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
-describe("ReciclaUPAO - Sistema Completo", function () {
+describe("ReciclaUPAO - Sistema de Incentivos Tokenizado", function () {
   let reciclaToken: ReciclaToken;
-  let reciclaICO: ReciclaICO;
   let admin: SignerWithAddress;
   let backend: SignerWithAddress;
   let user1: SignerWithAddress;
   let user2: SignerWithAddress;
-
-  const TOKENS_FOR_ICO = ethers.parseEther("3000000"); // 3 millones
-  const TOKEN_PRICE = ethers.parseEther("0.1"); // 0.1 MATIC por token
-  const SOFT_CAP = ethers.parseEther("50000"); // 50,000 MATIC
-  const HARD_CAP = ethers.parseEther("500000"); // 500,000 MATIC
-  const MIN_PURCHASE = ethers.parseEther("100"); // 100 tokens
-  const MAX_PURCHASE = ethers.parseEther("100000"); // 100,000 tokens
 
   beforeEach(async function () {
     // Obtener signers
@@ -29,30 +21,6 @@ describe("ReciclaUPAO - Sistema Completo", function () {
       backend.address
     );
 
-    // Desplegar ReciclaICO
-    const ReciclaICOFactory = await ethers.getContractFactory("ReciclaICO");
-    reciclaICO = await ReciclaICOFactory.deploy(
-      await reciclaToken.getAddress(),
-      TOKEN_PRICE,
-      SOFT_CAP,
-      HARD_CAP,
-      MIN_PURCHASE,
-      MAX_PURCHASE
-    );
-
-    // Agregar admin a whitelist
-    await reciclaToken
-      .connect(backend)
-      .addToWhitelist(admin.address, "DNI-ADMIN");
-
-    // Acuñar tokens para la ICO
-    await reciclaToken
-      .connect(backend)
-      .mintForActivity(admin.address, TOKENS_FOR_ICO, "Tokens para ICO");
-
-    // Transferir tokens al contrato ICO
-    await reciclaToken.transfer(await reciclaICO.getAddress(), TOKENS_FOR_ICO);
-
     // Agregar usuarios a whitelist
     await reciclaToken
       .connect(backend)
@@ -60,39 +28,12 @@ describe("ReciclaUPAO - Sistema Completo", function () {
         [user1.address, user2.address],
         ["DNI-USER1", "DNI-USER2"]
       );
-
-    // Iniciar ICO (30 días)
-    await reciclaICO.startICO(60 * 60 * 24 * 30);
   });
 
   describe("🔄 Flujo Completo de Usuario", function () {
-    it("Debe permitir comprar tokens, reciclar, y canjear recompensas", async function () {
-      // ==================== PASO 1: COMPRA EN ICO ====================
-      console.log("\n   📝 PASO 1: Usuario compra tokens en la ICO");
-
-      const maticToSend = ethers.parseEther("10"); // 10 MATIC
-
-      // Calcular tokens esperados (con 15% de descuento)
-      const tokensWithoutDiscount =
-        (maticToSend * ethers.parseEther("1")) / TOKEN_PRICE;
-      const bonusTokens = (tokensWithoutDiscount * 15n) / 100n;
-      const expectedTokens = tokensWithoutDiscount + bonusTokens;
-
-      // Realizar compra
-      await reciclaICO.connect(user1).buyTokens({ value: maticToSend });
-
-      // Verificar balance después de compra
-      const balanceAfterPurchase = await reciclaToken.balanceOf(user1.address);
-      expect(balanceAfterPurchase).to.equal(expectedTokens);
-
-      console.log(
-        `   ✅ Usuario compró ${ethers.formatEther(
-          expectedTokens
-        )} REC con descuento del 15%`
-      );
-
-      // ==================== PASO 2: ACTIVIDAD DE RECICLAJE ====================
-      console.log("\n   ♻️  PASO 2: Usuario registra actividad de reciclaje");
+    it("Debe permitir reciclar y canjear recompensas", async function () {
+      // ==================== PASO 1: ACTIVIDAD DE RECICLAJE ====================
+      console.log("\n   ♻️  PASO 1: Usuario registra actividad de reciclaje");
 
       const recycleReward = ethers.parseEther("50"); // 50 tokens de recompensa
 
@@ -107,7 +48,7 @@ describe("ReciclaUPAO - Sistema Completo", function () {
 
       // Verificar balance después de reciclar
       const balanceAfterRecycle = await reciclaToken.balanceOf(user1.address);
-      expect(balanceAfterRecycle).to.equal(expectedTokens + recycleReward);
+      expect(balanceAfterRecycle).to.equal(recycleReward);
 
       // Verificar tracking de tokens ganados
       const totalEarned = await reciclaToken.totalTokensEarnedByUser(
@@ -119,6 +60,29 @@ describe("ReciclaUPAO - Sistema Completo", function () {
         `   ✅ Usuario ganó ${ethers.formatEther(
           recycleReward
         )} REC por reciclar`
+      );
+
+      // ==================== PASO 2: SEGUNDA ACTIVIDAD DE RECICLAJE ====================
+      console.log(
+        "\n   ♻️  PASO 2: Usuario registra otra actividad de reciclaje"
+      );
+
+      const secondReward = ethers.parseEther("30"); // 30 tokens más
+
+      await reciclaToken
+        .connect(backend)
+        .mintForActivity(
+          user1.address,
+          secondReward,
+          "Reciclaje de 30kg de cartón"
+        );
+
+      // Verificar balance acumulado
+      const balanceAfterSecond = await reciclaToken.balanceOf(user1.address);
+      expect(balanceAfterSecond).to.equal(recycleReward + secondReward);
+
+      console.log(
+        `   ✅ Usuario ganó ${ethers.formatEther(secondReward)} REC adicionales`
       );
 
       // ==================== PASO 3: CANJE DE RECOMPENSA ====================
@@ -137,8 +101,7 @@ describe("ReciclaUPAO - Sistema Completo", function () {
 
       // Verificar balance final
       const finalBalance = await reciclaToken.balanceOf(user1.address);
-      const expectedFinalBalance =
-        expectedTokens + recycleReward - redeemAmount;
+      const expectedFinalBalance = recycleReward + secondReward - redeemAmount;
       expect(finalBalance).to.equal(expectedFinalBalance);
 
       // Verificar tracking de tokens gastados
@@ -167,32 +130,45 @@ describe("ReciclaUPAO - Sistema Completo", function () {
       console.log(`   💵 Balance actual: ${ethers.formatEther(current)} REC`);
 
       // Verificar que los números cuadran
-      expect(earned).to.equal(recycleReward);
+      expect(earned).to.equal(recycleReward + secondReward);
       expect(spent).to.equal(redeemAmount);
       expect(current).to.equal(expectedFinalBalance);
 
-      // Verificar progreso de la ICO
-      const totalRaised = await reciclaICO.totalRaised();
-      const totalTokensSold = await reciclaICO.totalTokensSold();
-
-      expect(totalRaised).to.equal(maticToSend);
-      expect(totalTokensSold).to.equal(expectedTokens);
-
-      console.log(
-        `\n   🎯 ICO: ${ethers.formatEther(totalRaised)} MATIC recaudados`
-      );
-      console.log(
-        `   🪙 ICO: ${ethers.formatEther(totalTokensSold)} REC vendidos`
-      );
-
       // Verificar supply total
       const totalSupply = await reciclaToken.totalSupply();
-      const expectedSupply = TOKENS_FOR_ICO + recycleReward - redeemAmount;
+      const expectedSupply = recycleReward + secondReward - redeemAmount;
       expect(totalSupply).to.equal(expectedSupply);
 
       console.log(
         `   📈 Supply total: ${ethers.formatEther(totalSupply)} REC\n`
       );
+    });
+
+    it("Debe permitir múltiples usuarios reciclando simultáneamente", async function () {
+      console.log("\n   👥 MÚLTIPLES USUARIOS RECICLANDO");
+
+      const reward1 = ethers.parseEther("100");
+      const reward2 = ethers.parseEther("75");
+
+      // Usuario 1 recicla
+      await reciclaToken
+        .connect(backend)
+        .mintForActivity(user1.address, reward1, "Reciclaje usuario 1");
+
+      // Usuario 2 recicla
+      await reciclaToken
+        .connect(backend)
+        .mintForActivity(user2.address, reward2, "Reciclaje usuario 2");
+
+      // Verificar balances
+      const balance1 = await reciclaToken.balanceOf(user1.address);
+      const balance2 = await reciclaToken.balanceOf(user2.address);
+
+      expect(balance1).to.equal(reward1);
+      expect(balance2).to.equal(reward2);
+
+      console.log(`   ✅ Usuario 1: ${ethers.formatEther(balance1)} REC`);
+      console.log(`   ✅ Usuario 2: ${ethers.formatEther(balance2)} REC\n`);
     });
   });
 });

@@ -1,5 +1,9 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
+/**
+ * Módulo de deployment para ReciclaUPAO
+ * Sistema de incentivos tokenizado para reciclaje universitario
+ */
 const ReciclaModule = buildModule("ReciclaModule", (m) => {
   const adminAddress = m.getParameter(
     "adminAddress",
@@ -10,39 +14,14 @@ const ReciclaModule = buildModule("ReciclaModule", (m) => {
     "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
   );
 
-  const tokenPriceInWei = m.getParameter("tokenPrice", "100000000000000000");
-
-  const softCapInWei = m.getParameter("softCap", "50000000000000000000000");
-
-  const hardCapInWei = m.getParameter("hardCap", "500000000000000000000000");
-
-  const minPurchaseTokens = m.getParameter(
-    "minPurchase",
-    "100000000000000000000"
-  );
-
-  const maxPurchaseTokens = m.getParameter(
-    "maxPurchase",
-    "100000000000000000000000"
-  );
-
+  // Desplegar el token REC
   const reciclaToken = m.contract("ReciclaToken", [
     adminAddress,
     backendWallet,
   ]);
 
-  const reciclaICO = m.contract("ReciclaICO", [
-    reciclaToken,
-    tokenPriceInWei,
-    softCapInWei,
-    hardCapInWei,
-    minPurchaseTokens,
-    maxPurchaseTokens,
-  ]);
-
   return {
     reciclaToken,
-    reciclaICO,
   };
 });
 

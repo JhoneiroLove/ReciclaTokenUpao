@@ -16,7 +16,7 @@ const RPC_URL = process.env.RPC_URL || "http://127.0.0.1:8545";
 const CHAIN_ID = process.env.CHAIN_ID || "31337";
 
 // Leer direcciones desplegadas
-function getDeployedAddresses(): { token: string; ico: string } {
+function getDeployedAddresses(): { token: string } {
   try {
     const deploymentPath = path.join(
       __dirname,
@@ -29,7 +29,6 @@ function getDeployedAddresses(): { token: string; ico: string } {
 
     return {
       token: data.ReciclaToken,
-      ico: data.ReciclaICO,
     };
   } catch (error) {
     console.error("Error leyendo direcciones desplegadas:", error);
@@ -71,65 +70,28 @@ async function main() {
 
   const addresses = getDeployedAddresses();
 
-  console.log("📍 Direcciones desplegadas:");
-  console.log(`   Token:  ${addresses.token}`);
-  console.log(`   ICO:    ${addresses.ico}\n`);
+  console.log("📍 Dirección desplegada:");
+  console.log(`   Token:  ${addresses.token}\n`);
 
-  // Obtener ABIs
+  // Obtener ABI
   const tokenABI = getABI("ReciclaToken");
-  const icoABI = getABI("ReciclaICO");
 
-  // Conectar a los contratos
+  // Conectar al contrato
   const token = new ethers.Contract(addresses.token, tokenABI, admin);
-  const ico = new ethers.Contract(addresses.ico, icoABI, admin);
 
   const tokenAsBackend = token.connect(backend) as any;
 
-  console.log("✅ PASO 1: Agregando admin a la whitelist...");
+  console.log("✅ PASO 1: Agregando usuarios a la whitelist...");
 
   const adminAddress = await admin.getAddress();
-  
-  const whitelistAdminTx = await tokenAsBackend.addToWhitelist(
-    adminAddress,
-    "DNI-ADMIN-HASH"
-  );
-  await whitelistAdminTx.wait();
-
-  console.log(`   ✅ Admin agregado: ${adminAddress}`);
-  console.log(`   TX: ${whitelistAdminTx.hash}\n`);
-
-  console.log("✅ PASO 2: Acuñando tokens para la ICO...");
-
-  const tokensForICO = ethers.parseEther("3000000");
-
-  const mintTx = await tokenAsBackend.mintForActivity(
-    adminAddress,
-    tokensForICO,
-    "Tokens reservados para ICO pública"
-  );
-  await mintTx.wait();
-
-  console.log(`   ✅ Acuñados ${ethers.formatEther(tokensForICO)} REC`);
-  console.log(`   TX: ${mintTx.hash}\n`);
-
-  console.log("✅ PASO 3: Transfiriendo tokens al contrato ICO...");
-
-  const transferTx = await (token as any).transfer(addresses.ico, tokensForICO);
-  await transferTx.wait();
-
-  const icoBalance = await (token as any).balanceOf(addresses.ico);
-  console.log(`   ✅ Balance del ICO: ${ethers.formatEther(icoBalance)} REC`);
-  console.log(`   TX: ${transferTx.hash}\n`);
-
-  console.log("✅ PASO 4: Agregando usuarios demo a la whitelist...");
-
   const user1Address = await user1.getAddress();
   const user2Address = await user2.getAddress();
   const user3Address = await user3.getAddress();
 
   const whitelistTx = await tokenAsBackend.addMultipleToWhitelist(
-    [user1Address, user2Address, user3Address],
+    [adminAddress, user1Address, user2Address, user3Address],
     [
+      "DNI-ADMIN-HASH",
       "DNI-12345678-HASH",
       "DNI-87654321-HASH",
       "DNI-11223344-HASH",
@@ -137,63 +99,48 @@ async function main() {
   );
   await whitelistTx.wait();
 
-  console.log(`   ✅ Usuarios agregados:`);
-  console.log(`      - ${user1Address}`);
-  console.log(`      - ${user2Address}`);
-  console.log(`      - ${user3Address}`);
+  console.log(`   ✅ Usuarios agregados a la whitelist:`);
+  console.log(`      - Admin: ${adminAddress}`);
+  console.log(`      - Usuario 1: ${user1Address}`);
+  console.log(`      - Usuario 2: ${user2Address}`);
+  console.log(`      - Usuario 3: ${user3Address}`);
   console.log(`   TX: ${whitelistTx.hash}\n`);
 
-  console.log("✅ PASO 5: Iniciando la ICO...");
+  console.log("✅ PASO 2: Acuñando tokens de prueba para recompensas...");
 
-  const icoDuration = 60 * 60 * 24 * 30; // 30 días
-  const startTx = await (ico as any).startICO(icoDuration);
-  await startTx.wait();
+  const tokensForRewards = ethers.parseEther("1000");
 
-  const startTime = await (ico as any).startTime();
-  const endTime = await (ico as any).endTime();
-
-  console.log(`   ✅ ICO iniciada`);
-  console.log(
-    `   Inicio: ${new Date(Number(startTime) * 1000).toLocaleString()}`
+  const mintTx = await tokenAsBackend.mintForActivity(
+    user1Address,
+    tokensForRewards,
+    "Tokens de prueba - Actividad de reciclaje"
   );
+  await mintTx.wait();
+
   console.log(
-    `   Fin:    ${new Date(Number(endTime) * 1000).toLocaleString()}`
+    `   ✅ Acuñados ${ethers.formatEther(tokensForRewards)} REC para usuario 1`
   );
-  console.log(`   TX: ${startTx.hash}\n`);
+  console.log(`   TX: ${mintTx.hash}\n`);
 
-  console.log("✅ PASO 6: Verificando configuración...\n");
+  console.log("✅ PASO 3: Verificando configuración...\n");
 
-  const [
-    tokenName,
-    tokenSymbol,
-    maxSupply,
-    totalMinted,
-    tokenPrice,
-    softCap,
-    hardCap,
-  ] = await Promise.all([
-    (token as any).name(),
-    (token as any).symbol(),
-    (token as any).MAX_SUPPLY(),
-    (token as any).totalMinted(),
-    (ico as any).tokenPrice(),
-    (ico as any).softCap(),
-    (ico as any).hardCap(),
-  ]);
+  const [tokenName, tokenSymbol, maxSupply, totalMinted, user1Balance] =
+    await Promise.all([
+      (token as any).name(),
+      (token as any).symbol(),
+      (token as any).MAX_SUPPLY(),
+      (token as any).totalMinted(),
+      (token as any).balanceOf(user1Address),
+    ]);
 
   console.log("🪙 TOKEN:");
   console.log(`   Nombre:       ${tokenName}`);
   console.log(`   Símbolo:      ${tokenSymbol}`);
   console.log(`   Max Supply:   ${ethers.formatEther(maxSupply)} REC`);
-  console.log(`   Total Acuñado: ${ethers.formatEther(totalMinted)} REC\n`);
-
-  console.log("💰 ICO:");
-  console.log(`   Precio:       ${ethers.formatEther(tokenPrice)} MATIC/REC`);
-  console.log(`   Soft Cap:     ${ethers.formatEther(softCap)} MATIC`);
-  console.log(`   Hard Cap:     ${ethers.formatEther(hardCap)} MATIC`);
-  console.log(`   Descuento S1: 15%`);
-  console.log(`   Descuento S2: 10%`);
-  console.log(`   Descuento S3: 5%\n`);
+  console.log(`   Total Acuñado: ${ethers.formatEther(totalMinted)} REC`);
+  console.log(
+    `   Balance Usuario 1: ${ethers.formatEther(user1Balance)} REC\n`
+  );
 
   console.log("===========================================");
   console.log("   ✅ CONFIGURACIÓN COMPLETADA");
@@ -201,8 +148,9 @@ async function main() {
 
   console.log("🎯 Próximos pasos:");
   console.log("   1. Ver info: npm run info");
-  console.log("   2. Comprar tokens: npm run buy-tokens");
-  console.log("   3. Ver balances: npm run balances\n");
+  console.log("   2. Registrar actividad: npm run recycle");
+  console.log("   3. Canjear recompensa: npm run redeem");
+  console.log("   4. Ver balances: npm run balances\n");
 }
 
 main()

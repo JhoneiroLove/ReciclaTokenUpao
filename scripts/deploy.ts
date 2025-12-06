@@ -35,10 +35,10 @@ async function main() {
   console.log("===========================================");
   console.log("   DEPLOYMENT COMPLETADO");
   console.log("===========================================\n");
-  console.log("Dirección desplegada:");
+  console.log("Direccion desplegada:");
   console.log("   ReciclaToken:", tokenAddress, "\n");
 
-  console.log("Próximos pasos:");
+  console.log("Proximos pasos:");
   console.log("   1. Ejecuta: npm run setup");
   console.log("   2. Consulta info: npm run info\n");
 

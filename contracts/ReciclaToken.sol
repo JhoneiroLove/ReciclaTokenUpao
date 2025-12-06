@@ -8,10 +8,12 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
 /**
  * @title ReciclaToken
  * @dev Token ERC-20 para el sistema de incentivos de reciclaje ReciclaUPAO
+ * Sistema de propuestas y multi-aprobación para descentralización
  */
 contract ReciclaToken is ERC20, AccessControl, Pausable {
     // ROLES
-    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant PROPOSER_ROLE = keccak256("PROPOSER_ROLE"); // Backend propone actividades
+    bytes32 public constant VALIDATOR_ROLE = keccak256("VALIDATOR_ROLE"); // Admins/Centro de acopio aprueban
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant WHITELIST_MANAGER_ROLE =
@@ -19,15 +21,65 @@ contract ReciclaToken is ERC20, AccessControl, Pausable {
 
     // CONSTANTES
     uint256 public constant MAX_SUPPLY = 10_000_000 * 10 ** 18;
+    uint8 public constant APROBACIONES_REQUERIDAS = 2; // 2 de N validadores
+
+    // TIPOS DE MATERIAL Y SUS RATES (REC por kg)
+    mapping(string => uint256) public ratesPorMaterial;
+
+    // ESTRUCTURA DE ACTIVIDAD DE RECICLAJE
+    struct ActividadReciclaje {
+        uint256 id;
+        address usuario;
+        uint256 pesoKg;
+        string tipoMaterial;
+        string evidenciaIPFS; // Hash IPFS de la evidencia fotográfica
+        uint256 tokensCalculados;
+        uint256 timestamp;
+        uint8 aprobaciones;
+        bool ejecutada;
+        bool rechazada;
+        address propuestoPor;
+    }
 
     // STATE VARIABLES
     uint256 private _totalMinted;
+    uint256 public actividadCounter;
+
     mapping(address => bool) private _whitelist;
     mapping(address => string) private _userDNI;
     mapping(address => uint256) public totalTokensEarnedByUser;
     mapping(address => uint256) public totalTokensSpentByUser;
 
+    // Actividades propuestas
+    mapping(uint256 => ActividadReciclaje) public actividades;
+    mapping(uint256 => mapping(address => bool)) public actividadAprobadaPor;
+
     // EVENTS
+    event ActividadPropuesta(
+        uint256 indexed actividadId,
+        address indexed usuario,
+        uint256 pesoKg,
+        string tipoMaterial,
+        uint256 tokensCalculados,
+        string evidenciaIPFS
+    );
+    event ActividadAprobada(
+        uint256 indexed actividadId,
+        address indexed validador,
+        uint8 aprobacionesTotales
+    );
+    event ActividadRechazada(
+        uint256 indexed actividadId,
+        address indexed validador,
+        string razon
+    );
+    event ActividadEjecutada(
+        uint256 indexed actividadId,
+        address indexed usuario,
+        uint256 tokensAcunados
+    );
+    event RateMaterialActualizado(string tipoMaterial, uint256 nuevoRate);
+
     event TokensMinted(address indexed to, uint256 amount, string reason);
     event TokensBurned(address indexed from, uint256 amount, string reason);
     event UserWhitelisted(address indexed user, string dniHash);
@@ -56,10 +108,18 @@ contract ReciclaToken is ERC20, AccessControl, Pausable {
         );
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        _grantRole(MINTER_ROLE, backendWallet);
+        _grantRole(PROPOSER_ROLE, backendWallet); // Backend solo puede PROPONER
         _grantRole(BURNER_ROLE, backendWallet);
         _grantRole(WHITELIST_MANAGER_ROLE, backendWallet);
         _grantRole(PAUSER_ROLE, admin);
+
+        // Configurar rates iniciales (REC por kg)
+        ratesPorMaterial["plastico"] = 15 * 10 ** 18; // 15 REC por kg
+        ratesPorMaterial["papel"] = 10 * 10 ** 18; // 10 REC por kg
+        ratesPorMaterial["vidrio"] = 12 * 10 ** 18; // 12 REC por kg
+        ratesPorMaterial["metal"] = 20 * 10 ** 18; // 20 REC por kg
+        ratesPorMaterial["carton"] = 8 * 10 ** 18; // 8 REC por kg
+        ratesPorMaterial["organico"] = 5 * 10 ** 18; // 5 REC por kg
     }
 
     // WHITELIST FUNCTIONS
@@ -126,68 +186,237 @@ contract ReciclaToken is ERC20, AccessControl, Pausable {
         return _userDNI[user];
     }
 
-    // MINTING FUNCTIONS
-    function mintForActivity(
-        address to,
-        uint256 amount,
-        string memory reason
-    ) external onlyRole(MINTER_ROLE) onlyWhitelisted(to) whenNotPaused {
-        require(to != address(0), "ReciclaToken: Cannot mint to zero address");
-        require(amount > 0, "ReciclaToken: Amount must be greater than zero");
+    // ========== SISTEMA DE PROPUESTAS Y APROBACIONES ==========
+
+    /**
+     * @dev Backend propone una actividad de reciclaje (NO acuña tokens directamente)
+     * @param usuario Dirección del usuario que recicló
+     * @param pesoKg Peso del material reciclado en kilogramos
+     * @param tipoMaterial Tipo de material (plastico, papel, vidrio, etc.)
+     * @param evidenciaIPFS Hash IPFS de la evidencia fotográfica
+     */
+    function proponerActividad(
+        address usuario,
+        uint256 pesoKg,
+        string memory tipoMaterial,
+        string memory evidenciaIPFS
+    )
+        external
+        onlyRole(PROPOSER_ROLE)
+        onlyWhitelisted(usuario)
+        whenNotPaused
+        returns (uint256)
+    {
+        require(usuario != address(0), "ReciclaToken: Usuario invalido");
+        require(pesoKg > 0, "ReciclaToken: Peso debe ser mayor a cero");
         require(
-            _totalMinted + amount <= MAX_SUPPLY,
-            "ReciclaToken: Would exceed max supply"
+            bytes(tipoMaterial).length > 0,
+            "ReciclaToken: Tipo de material requerido"
+        );
+        require(
+            bytes(evidenciaIPFS).length > 0,
+            "ReciclaToken: Evidencia IPFS requerida"
+        );
+        require(
+            ratesPorMaterial[tipoMaterial] > 0,
+            "ReciclaToken: Tipo de material no configurado"
         );
 
-        _mint(to, amount);
-        _totalMinted += amount;
-        totalTokensEarnedByUser[to] += amount;
+        uint256 tokensCalculados = calcularTokens(pesoKg, tipoMaterial);
 
-        emit TokensMinted(to, amount, reason);
+        require(
+            _totalMinted + tokensCalculados <= MAX_SUPPLY,
+            "ReciclaToken: Excederia el supply maximo"
+        );
+
+        uint256 actividadId = actividadCounter;
+
+        actividades[actividadId] = ActividadReciclaje({
+            id: actividadId,
+            usuario: usuario,
+            pesoKg: pesoKg,
+            tipoMaterial: tipoMaterial,
+            evidenciaIPFS: evidenciaIPFS,
+            tokensCalculados: tokensCalculados,
+            timestamp: block.timestamp,
+            aprobaciones: 0,
+            ejecutada: false,
+            rechazada: false,
+            propuestoPor: msg.sender
+        });
+
+        emit ActividadPropuesta(
+            actividadId,
+            usuario,
+            pesoKg,
+            tipoMaterial,
+            tokensCalculados,
+            evidenciaIPFS
+        );
+
+        actividadCounter++;
+        return actividadId;
     }
-    function mintBatch(
-        address[] memory recipients,
-        uint256[] memory amounts,
-        string memory reason
-    ) external onlyRole(MINTER_ROLE) whenNotPaused {
-        require(
-            recipients.length == amounts.length,
-            "ReciclaToken: Arrays length mismatch"
-        );
-        require(recipients.length > 0, "ReciclaToken: Empty arrays");
 
-        uint256 totalAmount = 0;
-        for (uint256 i = 0; i < amounts.length; i++) {
-            totalAmount += amounts[i];
-        }
+    /**
+     * @dev Validador aprueba una actividad propuesta
+     * @param actividadId ID de la actividad a aprobar
+     */
+    function aprobarActividad(
+        uint256 actividadId
+    ) external onlyRole(VALIDATOR_ROLE) whenNotPaused {
+        ActividadReciclaje storage actividad = actividades[actividadId];
 
         require(
-            _totalMinted + totalAmount <= MAX_SUPPLY,
-            "ReciclaToken: Would exceed max supply"
+            actividad.usuario != address(0),
+            "ReciclaToken: Actividad no existe"
+        );
+        require(!actividad.ejecutada, "ReciclaToken: Actividad ya ejecutada");
+        require(!actividad.rechazada, "ReciclaToken: Actividad rechazada");
+        require(
+            !actividadAprobadaPor[actividadId][msg.sender],
+            "ReciclaToken: Ya aprobaste esta actividad"
         );
 
-        for (uint256 i = 0; i < recipients.length; i++) {
-            require(
-                recipients[i] != address(0),
-                "ReciclaToken: Cannot mint to zero address"
-            );
-            require(
-                _whitelist[recipients[i]],
-                "ReciclaToken: Recipient not whitelisted"
-            );
-            require(
-                amounts[i] > 0,
-                "ReciclaToken: Amount must be greater than zero"
-            );
+        // Registrar aprobación
+        actividadAprobadaPor[actividadId][msg.sender] = true;
+        actividad.aprobaciones++;
 
-            _mint(recipients[i], amounts[i]);
-            totalTokensEarnedByUser[recipients[i]] += amounts[i];
+        emit ActividadAprobada(actividadId, msg.sender, actividad.aprobaciones);
 
-            emit TokensMinted(recipients[i], amounts[i], reason);
+        // Si alcanza las aprobaciones requeridas, ejecutar acuñación
+        if (actividad.aprobaciones >= APROBACIONES_REQUERIDAS) {
+            _ejecutarActividad(actividadId);
         }
-
-        _totalMinted += totalAmount;
     }
+
+    /**
+     * @dev Validador rechaza una actividad propuesta
+     * @param actividadId ID de la actividad a rechazar
+     * @param razon Razón del rechazo
+     */
+    function rechazarActividad(
+        uint256 actividadId,
+        string memory razon
+    ) external onlyRole(VALIDATOR_ROLE) whenNotPaused {
+        ActividadReciclaje storage actividad = actividades[actividadId];
+
+        require(
+            actividad.usuario != address(0),
+            "ReciclaToken: Actividad no existe"
+        );
+        require(!actividad.ejecutada, "ReciclaToken: Actividad ya ejecutada");
+        require(!actividad.rechazada, "ReciclaToken: Actividad ya rechazada");
+
+        actividad.rechazada = true;
+
+        emit ActividadRechazada(actividadId, msg.sender, razon);
+    }
+
+    /**
+     * @dev Ejecuta la acuñación de tokens para una actividad aprobada (interno)
+     */
+    function _ejecutarActividad(uint256 actividadId) private {
+        ActividadReciclaje storage actividad = actividades[actividadId];
+
+        _mint(actividad.usuario, actividad.tokensCalculados);
+        _totalMinted += actividad.tokensCalculados;
+        totalTokensEarnedByUser[actividad.usuario] += actividad
+            .tokensCalculados;
+        actividad.ejecutada = true;
+
+        emit ActividadEjecutada(
+            actividadId,
+            actividad.usuario,
+            actividad.tokensCalculados
+        );
+
+        emit TokensMinted(
+            actividad.usuario,
+            actividad.tokensCalculados,
+            string(abi.encodePacked("Actividad #", _uint2str(actividadId)))
+        );
+    }
+
+    /**
+     * @dev Calcula tokens basado en peso y tipo de material
+     * @param pesoKg Peso en kilogramos
+     * @param tipoMaterial Tipo de material
+     */
+    function calcularTokens(
+        uint256 pesoKg,
+        string memory tipoMaterial
+    ) public view returns (uint256) {
+        uint256 ratePorKg = ratesPorMaterial[tipoMaterial];
+        require(ratePorKg > 0, "ReciclaToken: Material no configurado");
+
+        // pesoKg viene como entero (ej: 5 = 5kg)
+        // ratePorKg ya incluye 10**18
+        // Resultado: tokens en wei
+        return (pesoKg * ratePorKg) / 1; // Se puede ajustar si pesoKg trae decimales
+    }
+
+    /**
+     * @dev Admin actualiza el rate de un material
+     */
+    function actualizarRateMaterial(
+        string memory tipoMaterial,
+        uint256 nuevoRate
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(nuevoRate > 0, "ReciclaToken: Rate debe ser mayor a cero");
+
+        ratesPorMaterial[tipoMaterial] = nuevoRate;
+
+        emit RateMaterialActualizado(tipoMaterial, nuevoRate);
+    }
+
+    /**
+     * @dev Obtiene información completa de una actividad
+     */
+    function getActividad(
+        uint256 actividadId
+    )
+        external
+        view
+        returns (
+            address usuario,
+            uint256 pesoKg,
+            string memory tipoMaterial,
+            string memory evidenciaIPFS,
+            uint256 tokensCalculados,
+            uint256 timestamp,
+            uint8 aprobaciones,
+            bool ejecutada,
+            bool rechazada,
+            address propuestoPor
+        )
+    {
+        ActividadReciclaje storage act = actividades[actividadId];
+        return (
+            act.usuario,
+            act.pesoKg,
+            act.tipoMaterial,
+            act.evidenciaIPFS,
+            act.tokensCalculados,
+            act.timestamp,
+            act.aprobaciones,
+            act.ejecutada,
+            act.rechazada,
+            act.propuestoPor
+        );
+    }
+
+    /**
+     * @dev Verifica si un validador ya aprobó una actividad
+     */
+    function haAprobado(
+        uint256 actividadId,
+        address validador
+    ) external view returns (bool) {
+        return actividadAprobadaPor[actividadId][validador];
+    }
+
+    // ========== FUNCIONES DE QUEMADO ==========
 
     // BURNING FUNCTIONS
     function burnForRedemption(
@@ -249,6 +478,32 @@ contract ReciclaToken is ERC20, AccessControl, Pausable {
         earned = totalTokensEarnedByUser[user];
         spent = totalTokensSpentByUser[user];
         current = balanceOf(user);
+    }
+
+    // INTERNAL UTILITY FUNCTIONS
+    /**
+     * @dev Convierte uint256 a string para eventos
+     */
+    function _uint2str(uint256 _i) internal pure returns (string memory) {
+        if (_i == 0) {
+            return "0";
+        }
+        uint256 j = _i;
+        uint256 len;
+        while (j != 0) {
+            len++;
+            j /= 10;
+        }
+        bytes memory bstr = new bytes(len);
+        uint256 k = len;
+        while (_i != 0) {
+            k = k - 1;
+            uint8 temp = (48 + uint8(_i - (_i / 10) * 10));
+            bytes1 b1 = bytes1(temp);
+            bstr[k] = b1;
+            _i /= 10;
+        }
+        return string(bstr);
     }
 
     // OVERRIDE FUNCTIONS

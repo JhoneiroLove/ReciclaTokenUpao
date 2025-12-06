@@ -77,16 +77,19 @@ export function getContracts(signer?: ethers.Signer) {
  * Obtiene los signers predefinidos
  */
 export async function getSigners() {
-  const [admin, backend, user1, user2, user3, user4] = await Promise.all([
-    provider.getSigner(0), // Admin
-    provider.getSigner(1), // Backend
-    provider.getSigner(2), // Usuario 1
-    provider.getSigner(3), // Usuario 2
-    provider.getSigner(4), // Usuario 3
-    provider.getSigner(5), // Usuario 4
-  ]);
+  const [admin, backend, validator1, validator2, user1, user2, user3, user4] =
+    await Promise.all([
+      provider.getSigner(0), // Admin
+      provider.getSigner(1), // Backend (PROPOSER_ROLE)
+      provider.getSigner(2), // Validador 1 - Admin Ambiental UPAO
+      provider.getSigner(3), // Validador 2 - Centro de Acopio
+      provider.getSigner(4), // Usuario 1
+      provider.getSigner(5), // Usuario 2
+      provider.getSigner(6), // Usuario 3
+      provider.getSigner(7), // Usuario 4
+    ]);
 
-  return { admin, backend, user1, user2, user3, user4 };
+  return { admin, backend, validator1, validator2, user1, user2, user3, user4 };
 }
 
 /**

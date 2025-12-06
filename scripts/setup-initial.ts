@@ -60,17 +60,20 @@ async function main() {
 
   // Conectar a la red
   const provider = new ethers.JsonRpcProvider(RPC_URL);
-  const [admin, backend, user1, user2, user3] = await Promise.all([
-    provider.getSigner(0), // Admin
-    provider.getSigner(1), // Backend
-    provider.getSigner(2), // Usuario demo 1
-    provider.getSigner(3), // Usuario demo 2
-    provider.getSigner(4), // Usuario demo 3
-  ]);
+  const [admin, backend, validator1, validator2, user1, user2, user3] =
+    await Promise.all([
+      provider.getSigner(0), // Admin
+      provider.getSigner(1), // Backend (PROPOSER_ROLE)
+      provider.getSigner(2), // Validador 1 (Admin Ambiental UPAO)
+      provider.getSigner(3), // Validador 2 (Centro de Acopio)
+      provider.getSigner(4), // Usuario demo 1
+      provider.getSigner(5), // Usuario demo 2
+      provider.getSigner(6), // Usuario demo 3
+    ]);
 
   const addresses = getDeployedAddresses();
 
-  console.log("📍 Dirección desplegada:");
+  console.log("📍 Direccion desplegada:");
   console.log(`   Token:  ${addresses.token}\n`);
 
   // Obtener ABI
@@ -81,7 +84,34 @@ async function main() {
 
   const tokenAsBackend = token.connect(backend) as any;
 
-  console.log("✅ PASO 1: Agregando usuarios a la whitelist...");
+  console.log("✅ PASO 1: Otorgando roles de validador...");
+
+  const validator1Address = await validator1.getAddress();
+  const validator2Address = await validator2.getAddress();
+
+  // Obtener VALIDATOR_ROLE
+  const VALIDATOR_ROLE = await (token as any).VALIDATOR_ROLE();
+
+  // Otorgar roles
+  const grantRole1Tx = await (token as any).grantRole(
+    VALIDATOR_ROLE,
+    validator1Address
+  );
+  await grantRole1Tx.wait();
+
+  const grantRole2Tx = await (token as any).grantRole(
+    VALIDATOR_ROLE,
+    validator2Address
+  );
+  await grantRole2Tx.wait();
+
+  console.log(`   ✅ VALIDATOR_ROLE otorgado a:`);
+  console.log(`      - Validador 1 (Admin Ambiental): ${validator1Address}`);
+  console.log(`      - Validador 2 (Centro Acopio):   ${validator2Address}`);
+  console.log(`   TX1: ${grantRole1Tx.hash}`);
+  console.log(`   TX2: ${grantRole2Tx.hash}\n`);
+
+  console.log("✅ PASO 2: Agregando usuarios a la whitelist...");
 
   const adminAddress = await admin.getAddress();
   const user1Address = await user1.getAddress();
@@ -106,23 +136,47 @@ async function main() {
   console.log(`      - Usuario 3: ${user3Address}`);
   console.log(`   TX: ${whitelistTx.hash}\n`);
 
-  console.log("✅ PASO 2: Acuñando tokens de prueba para recompensas...");
+  console.log("✅ PASO 3: Creando actividad de reciclaje de prueba...");
 
-  const tokensForRewards = ethers.parseEther("1000");
+  const pesoKg = 50; // 50 kg de plástico
+  const tipoMaterial = "plastico"; // 15 REC/kg = 750 REC
+  const evidenciaIPFS = "QmTestEvidence123...abc";
 
-  const mintTx = await tokenAsBackend.mintForActivity(
+  // Backend propone actividad
+  const proposalTx = await tokenAsBackend.proponerActividad(
     user1Address,
-    tokensForRewards,
-    "Tokens de prueba - Actividad de reciclaje"
+    pesoKg,
+    tipoMaterial,
+    evidenciaIPFS
   );
-  await mintTx.wait();
+  await proposalTx.wait();
 
-  console.log(
-    `   ✅ Acuñados ${ethers.formatEther(tokensForRewards)} REC para usuario 1`
-  );
-  console.log(`   TX: ${mintTx.hash}\n`);
+  console.log(`   ✅ Actividad propuesta para Usuario 1:`);
+  console.log(`      - Material: ${tipoMaterial}`);
+  console.log(`      - Peso: ${pesoKg} kg`);
+  console.log(`      - Tokens calculados: 750 REC (50kg × 15 REC/kg)`);
+  console.log(`      - Evidencia IPFS: ${evidenciaIPFS}`);
+  console.log(`   TX: ${proposalTx.hash}\n`);
 
-  console.log("✅ PASO 3: Verificando configuración...\n");
+  console.log("✅ PASO 4: Validadores aprueban la actividad...");
+
+  // Validador 1 aprueba
+  const tokenAsValidator1 = token.connect(validator1) as any;
+  const approve1Tx = await tokenAsValidator1.aprobarActividad(0);
+  await approve1Tx.wait();
+
+  console.log(`   ✅ Validador 1 aprobó (1/2)`);
+  console.log(`   TX: ${approve1Tx.hash}`);
+
+  // Validador 2 aprueba (esto ejecutará automáticamente el minting)
+  const tokenAsValidator2 = token.connect(validator2) as any;
+  const approve2Tx = await tokenAsValidator2.aprobarActividad(0);
+  await approve2Tx.wait();
+
+  console.log(`   ✅ Validador 2 aprobó (2/2) - ¡Tokens acuñados!`);
+  console.log(`   TX: ${approve2Tx.hash}\n`);
+
+  console.log("✅ PASO 5: Verificando configuración...\n");
 
   const [tokenName, tokenSymbol, maxSupply, totalMinted, user1Balance] =
     await Promise.all([

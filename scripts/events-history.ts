@@ -19,7 +19,7 @@ async function main() {
   console.log("===========================================\n");
   console.log(`Rango de bloques: ${fromBlock} → ${toBlock}\n`);
 
-  const { token, ico } = getContracts();
+  const { token } = getContracts();
 
   console.log("EVENTOS DEL TOKEN:\n");
 
@@ -98,47 +98,6 @@ async function main() {
     console.log(`   Usuario:  ${args.user}`);
     console.log(`   DNI Hash: ${args.dniHash}`);
     console.log(`   TX:       ${event.transactionHash}\n`);
-  }
-
-  console.log("EVENTOS DE LA ICO:\n");
-
-  // TokensPurchased
-  const purchasedFilter = (ico as any).filters.TokensPurchased();
-  const purchasedEvents = await (ico as any).queryFilter(
-    purchasedFilter,
-    fromBlock,
-    toBlock
-  );
-
-  console.log(`TokensPurchased (${purchasedEvents.length} eventos):`);
-  for (const event of purchasedEvents) {
-    const args = event.args as any;
-    console.log(`   Bloque #${event.blockNumber}`);
-    console.log(`   Comprador: ${args.buyer}`);
-    console.log(`   MATIC:     ${formatMATIC(args.maticAmount)} MATIC`);
-    console.log(`   Tokens:    ${formatREC(args.tokenAmount)} REC`);
-    console.log(`   Descuento: ${args.discountApplied}%`);
-    console.log(`   TX:        ${event.transactionHash}\n`);
-  }
-
-  // ICOStarted
-  const icoStartedFilter = (ico as any).filters.ICOStarted();
-  const icoStartedEvents = await (ico as any).queryFilter(
-    icoStartedFilter,
-    fromBlock,
-    toBlock
-  );
-
-  console.log(`ICOStarted (${icoStartedEvents.length} eventos):`);
-  for (const event of icoStartedEvents) {
-    const args = event.args as any;
-    console.log(
-      `   Inicio: ${new Date(Number(args.startTime) * 1000).toLocaleString()}`
-    );
-    console.log(
-      `   Fin:    ${new Date(Number(args.endTime) * 1000).toLocaleString()}`
-    );
-    console.log(`   TX:     ${event.transactionHash}\n`);
   }
 
   console.log("===========================================\n");

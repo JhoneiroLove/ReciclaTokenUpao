@@ -30,7 +30,6 @@ async function main() {
     user2Balance,
     user3Balance,
     user4Balance,
-    icoBalance,
   ] = await Promise.all([
     (token as any).balanceOf(adminAddr),
     (token as any).balanceOf(backendAddr),
@@ -38,7 +37,6 @@ async function main() {
     (token as any).balanceOf(user2Addr),
     (token as any).balanceOf(user3Addr),
     (token as any).balanceOf(user4Addr),
-    (token as any).balanceOf(addresses.ico),
   ]);
 
   // Consultar información extendida de usuarios (si están en whitelist)
@@ -71,10 +69,6 @@ async function main() {
 
   console.log(`   User #4:   ${user4Addr}`);
   console.log(`   Balance:   ${formatREC(user4Balance)} REC\n`);
-
-  console.log("CONTRATOS:");
-  console.log(`   ICO:       ${addresses.ico}`);
-  console.log(`   Balance:   ${formatREC(icoBalance)} REC\n`);
 
   // Resumen total
   const totalSupply = await (token as any).totalSupply();

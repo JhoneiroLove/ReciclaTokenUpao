@@ -2,6 +2,8 @@
 
 Este documento detalla todas las fases de desarrollo del proyecto ReciclaUPAO, desde la concepción hasta el deployment en producción.
 
+> **⚠️ NOTA IMPORTANTE:** Este documento contiene referencias históricas a una ICO (Oferta Inicial de Monedas) que **NO forman parte del proyecto actual**. ReciclaUPAO es un **sistema de incentivos tokenizado** donde los tokens REC se distribuyen exclusivamente como **recompensas** por actividades de reciclaje verificadas. Los tokens **NO se venden al público**. Cualquier mención a ICO, venta de tokens, o conceptos relacionados debe considerarse obsoleta y solo se mantiene con fines de referencia histórica del desarrollo.
+
 ## Tabla de Contenidos
 
 1. [Fase 1: Análisis y Diseño](#fase-1-análisis-y-diseño)
@@ -33,22 +35,20 @@ Desarrollar un sistema de incentivos de reciclaje universitario basado en blockc
 - Sistema híbrido: Spring Boot 3.1.5 + MySQL como backend, blockchain como fuente de verdad
 - Token REC (ERC-20) en Polygon
 - Supply máximo: 10,000,000 REC
-- ICO con soft cap 50K USD y hard cap 500K USD
-- Distribución: 40% recompensas, 30% ICO, 15% equipo, 10% reserva, 5% liquidez
-- Precio inicial: 0.10 USD/token con descuentos early adopter
+- **Sistema de Recompensas Tokenizado**: Los tokens se distribuyen como recompensas por actividades de reciclaje verificadas
+- **NO es una ICO**: Los tokens no se venden al público, solo se otorgan como incentivos
 
 **Proyecto de Referencia (PetCareToken):**
 
 - Implementación básica de ERC-20 con Hardhat
 - Scripts TypeScript para interacción
-- Limitaciones identificadas: sin ICO separado, sin whitelist, sin gestión de wallets custodiadas
+- Limitaciones identificadas: sin whitelist, sin gestión de wallets custodiadas
 
 ### Decisiones de Arquitectura
 
 **Smart Contracts:**
 
-- ReciclaToken: ERC-20 con AccessControl, Pausable, Whitelist
-- ReciclaICO: Gestión de venta de tokens con soft/hard caps
+- ReciclaToken: ERC-20 con AccessControl, Pausable, Whitelist para sistema de recompensas
 
 **Roles Definidos:**
 

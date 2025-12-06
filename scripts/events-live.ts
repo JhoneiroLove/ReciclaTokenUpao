@@ -11,7 +11,7 @@ async function main() {
   console.log("===========================================\n");
   console.log("Escuchando eventos... (Ctrl+C para salir)\n");
 
-  const { token, ico } = getContracts();
+  const { token } = getContracts();
 
   // Evento: TokensMinted
   (token as any).on(
@@ -66,58 +66,6 @@ async function main() {
       console.log(`   Usuario:  ${user}`);
       console.log(`   DNI Hash: ${dniHash}`);
       console.log(`   TX:       ${event.log.transactionHash}\n`);
-    }
-  );
-
-  // Evento: TokensPurchased
-  (ico as any).on(
-    "TokensPurchased",
-    (
-      buyer: string,
-      maticAmount: bigint,
-      tokenAmount: bigint,
-      discountApplied: bigint,
-      event: any
-    ) => {
-      console.log("[TokensPurchased]");
-      console.log(`   Comprador: ${buyer}`);
-      console.log(`   MATIC:     ${formatMATIC(maticAmount)} MATIC`);
-      console.log(`   Tokens:    ${formatREC(tokenAmount)} REC`);
-      console.log(`   Descuento: ${discountApplied}%`);
-      console.log(`   TX:        ${event.log.transactionHash}`);
-      console.log(`   Bloque:    #${event.log.blockNumber}\n`);
-    }
-  );
-
-  // Evento: ICOStarted
-  (ico as any).on(
-    "ICOStarted",
-    (startTime: bigint, endTime: bigint, event: any) => {
-      console.log("[ICOStarted]");
-      console.log(
-        `   Inicio:  ${new Date(Number(startTime) * 1000).toLocaleString()}`
-      );
-      console.log(
-        `   Fin:     ${new Date(Number(endTime) * 1000).toLocaleString()}`
-      );
-      console.log(`   TX:      ${event.log.transactionHash}\n`);
-    }
-  );
-
-  // Evento: ICOFinalized
-  (ico as any).on(
-    "ICOFinalized",
-    (
-      totalRaised: bigint,
-      totalTokensSold: bigint,
-      softCapReached: boolean,
-      event: any
-    ) => {
-      console.log("[ICOFinalized]");
-      console.log(`   Total recaudado:    ${formatMATIC(totalRaised)} MATIC`);
-      console.log(`   Tokens vendidos:    ${formatREC(totalTokensSold)} REC`);
-      console.log(`   Soft cap alcanzado: ${softCapReached ? "Sí" : "No"}`);
-      console.log(`   TX:                 ${event.log.transactionHash}\n`);
     }
   );
 

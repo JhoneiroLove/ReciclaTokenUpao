@@ -12,6 +12,8 @@
     "deploy:amoy": "hardhat run scripts/deploy-testnet.ts --network amoy",
     "deploy:polygon": "hardhat run scripts/deploy-testnet.ts --network polygon",
     "setup": "tsx scripts/setup-initial.ts",
+    "fund-backend": "hardhat run scripts/fund-backend.ts --network localhost",
+    "grant-roles": "hardhat run scripts/grant-backend-roles.ts --network localhost",
     "info": "tsx scripts/token-info.ts",
     "balances": "tsx scripts/balances.ts",
     "recycle": "tsx scripts/recycle-activity.ts",

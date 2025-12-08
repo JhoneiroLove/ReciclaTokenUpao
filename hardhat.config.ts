@@ -4,6 +4,10 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
+// Mnemonic determinista para desarrollo/demo
+// SIEMPRE genera las mismas 20 cuentas
+const MNEMONIC = "test test test test test test test test test test test junk";
+
 const config: HardhatUserConfig = {
   solidity: {
     version: "0.8.28",
@@ -15,8 +19,20 @@ const config: HardhatUserConfig = {
     },
   },
   networks: {
+    hardhat: {
+      chainId: 31337,
+      accounts: {
+        mnemonic: MNEMONIC,
+        count: 20,
+        accountsBalance: "10000000000000000000000", // 10,000 ETH por cuenta
+      },
+    },
     localhost: {
       url: "http://127.0.0.1:8545",
+      accounts: {
+        mnemonic: MNEMONIC,
+        count: 20,
+      },
     },
     amoy: {
       // Polygon Amoy Testnet (reemplazo de Mumbai)

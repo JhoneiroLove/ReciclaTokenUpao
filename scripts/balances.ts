@@ -1,4 +1,4 @@
-import { getContracts, getSigners, formatREC } from "./_config.js";
+import { getContracts, getSigners, formatREC } from "./_config";
 
 /**
  * Script para consultar balances de todos los actores del sistema

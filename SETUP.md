@@ -4,7 +4,20 @@
 
 ---
 
-## 📌 Orden de Ejecución (IMPORTANTE)
+## 📌 Entornos Disponibles
+
+Este sistema puede ejecutarse en dos entornos:
+
+| Entorno | Descripción | Uso |
+|---------|-------------|-----|
+| **Localhost** | Hardhat local (desarrollo) | Testing rápido, no requiere ETH real |
+| **Sepolia** | Testnet público de Ethereum | Pruebas realistas, requiere SepoliaETH gratuito |
+
+---
+
+## 🏠 CONFIGURACIÓN LOCALHOST (Desarrollo)
+
+### Orden de Ejecución (IMPORTANTE)
 
 Debes levantar los módulos en este orden exacto:
 
@@ -18,9 +31,9 @@ Debes levantar los módulos en este orden exacto:
 
 ---
 
-## 🔗 PASO 1: Blockchain (recicla-upao-token)
+### 🔗 PASO 1: Blockchain (recicla-upao-token)
 
-### Terminal 1 - Nodo Blockchain (Mantener abierta)
+#### Terminal 1 - Nodo Blockchain (Mantener abierta)
 
 ```bash
 cd recicla-upao-token
@@ -33,7 +46,7 @@ npx hardhat node
 - La terminal se quedará "colgada" mostrando `Started HTTP and WebSocket JSON-RPC server at http://127.0.0.1:8545/`
 - **NO cierres esta terminal**
 
-### Terminal 2 - Desplegar Contrato
+#### Terminal 2 - Desplegar Contrato
 
 ```bash
 cd recicla-upao-token
@@ -45,9 +58,98 @@ npx hardhat run scripts/deploy.ts --network localhost
 ✅ ReciclaToken desplegado en: 0x5FbDB2315678afecb367f032d93F642f64180aa3
 ```
 
-### Terminal 2 - Asignar Roles (Misma terminal)
+> 📝 Esta dirección es **siempre la misma** (determinista)
+
+---
+
+## 🌐 CONFIGURACIÓN SEPOLIA (Testnet)
+
+### Requisitos Previos
+
+1. **Wallet de MetaMask** con SepoliaETH
+2. **Cuenta de Alchemy** (gratis): https://www.alchemy.com/
+3. **SepoliaETH gratuito**: https://sepoliafaucet.com/
+
+### 🔗 PASO 1: Obtener SepoliaETH
+
+1. Ve a https://sepoliafaucet.com/
+2. Conecta tu wallet de MetaMask
+3. Solicita 0.5 SepoliaETH (gratis)
+4. Espera 1-2 minutos a que llegue
+
+> Necesitarás aproximadamente **0.1 SepoliaETH** para desplegar y configurar
+
+### 🔧 PASO 2: Configurar Alchemy
+
+1. Crea cuenta en https://www.alchemy.com/
+2. Create App → Chain: Ethereum, Network: Sepolia
+3. Copia la **HTTPS URL**:
+   ```
+   https://eth-sepolia.g.alchemy.com/v2/TU_API_KEY
+   ```
+
+### 📝 PASO 3: Configurar Variables de Entorno
+
+Crea el archivo `.env` en `recicla-upao-token`:
+
+```env
+# RPC URL de Alchemy
+SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/TU_API_KEY
+
+# Private key de tu wallet (desde MetaMask)
+# Settings → Security & Privacy → Show private key
+PRIVATE_KEY=tu_private_key_aqui_sin_0x
+```
+
+> ⚠️ **NUNCA subas `.env` a GitHub**
+
+### 🚀 PASO 4: Desplegar en Sepolia
+
+#### Terminal 1 - Compilar y Desplegar
 
 ```bash
+cd recicla-upao-token
+npm install
+npx hardhat compile
+npx hardhat run scripts/deploy-sepolia.ts --network sepolia
+```
+
+**Resultado esperado:**
+```
+✅ ReciclaToken desplegado en: 0x6Ee68256eF29096e8Bc66c14494E5f58650488DD
+💾 Deployment info guardada en: deployments/sepolia.json
+```
+
+#### Terminal 1 - Configurar Roles
+
+```bash
+npx hardhat run scripts/setup-roles-sepolia.ts --network sepolia
+```
+
+**Resultado esperado:**
+```
+✅ Configuración de roles completada!
+  VALIDATOR_ROLE: ✅
+  PROPOSER_ROLE: ✅
+  BURNER_ROLE: ✅
+  WHITELIST_MANAGER_ROLE: ✅
+```
+
+#### Verificar en Etherscan
+
+Abre: https://sepolia.etherscan.io/address/0x6Ee68256eF29096e8Bc66c14494E5f58650488DD
+
+Deberías ver tu contrato desplegado.
+
+---
+
+## 💻 PASO 2: Backend (recicla_upao_nube)
+
+### Configuración para Localhost
+
+El archivo `application.properties` ya está configurado para localhost.
+
+#### Terminal 3 - Levantar Backend
 npx hardhat run scripts/grant-backend-roles.ts --network localhost
 npx hardhat run scripts/grant-ong-roles.ts --network localhost
 npx hardhat run scripts/grant-centro-role.ts --network localhost

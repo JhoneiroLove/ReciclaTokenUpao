@@ -34,6 +34,12 @@ const config: HardhatUserConfig = {
         count: 20,
       },
     },
+    sepolia: {
+      // Ethereum Sepolia Testnet
+      url: process.env.SEPOLIA_RPC_URL || "https://rpc.sepolia.org",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 11155111,
+    },
     amoy: {
       // Polygon Amoy Testnet (reemplazo de Mumbai)
       url: process.env.MUMBAI_RPC_URL || "",
